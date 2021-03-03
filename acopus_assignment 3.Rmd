@@ -1,0 +1,124 @@
+---
+title: "acopus_assignment3M1"
+author: "copus"
+date: "3/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+setwd("C:/Users/copus/Desktop/Classes/Machine Learning/Assignments/Assignment 3")
+
+##import data
+UBData <- read.csv('C:/Users/copus/Desktop/Classes/Machine Learning/Assignments/Assignment 3/UniversalBank.csv')
+
+
+##libraries##
+library(caret)
+library(ISLR)
+library(e1071)
+library(tidyverse)
+library(pivottabler)
+
+
+
+set.seed(123)
+
+UBdata1<-UBData[,(-c(1:9,11,12))]
+
+#partion data
+Index_Train<-createDataPartition(UBdata1$Personal.Loan, p=0.6, list=FALSE)
+UBTrain <-UBdata1[Index_Train,]
+UBTest  <-UBdata1[-Index_Train,]
+
+
+
+```
+
+
+```{r}
+######part A######
+UB <-UBTrain
+
+UB$Online[UB$Online == 0] = "Not Online"
+UB$Online[UB$Online == 1] = "Online"
+UB$CreditCard[UB$CreditCard == 0] = "No Credit Card"
+UB$CreditCard[UB$CreditCard == 1] = "Credit Card"
+UB$Personal.Loan[UB$Personal.Loan == 0] = "No Loan"
+UB$Personal.Loan[UB$Personal.Loan == 1] = "Loan"
+
+##create pivot table##
+UBpt <- PivotTable$new()
+UBpt$addData(UB)
+UBpt$addColumnDataGroups("Online")
+UBpt$addRowDataGroups("CreditCard",
+                    outlineBefore=list(groupStyleDeclarations=list(color="blue")),
+                    outlineAfter=list(isEmpty=FALSE,
+                                      mergeSpace="dataGroupsOnly",
+                                      caption="Total ({value})",
+                                      groupStyleDeclarations=list("font-style"="italic")),)
+UBpt$addRowDataGroups("Personal.Loan", addTotal = FALSE)
+UBpt$defineCalculation(calculationName="Total", summariseExpression="n()")
+UBpt$renderPivot()
+```
+```{r}
+####part b####
+
+cat("The probability of this customer accepting the loan is", (42/528),".")
+```
+
+
+```{r}
+####part c.1####
+#Pivot C1
+UBptC1 <- PivotTable$new()
+UBptC1$addData(UB)
+UBptC1$addColumnDataGroups("Online")
+UBptC1$addRowDataGroups("Personal.Loan", addTotal = FALSE)
+UBptC1$defineCalculation(calculationName="Total", summariseExpression="n()")
+UBptC1$renderPivot()
+```
+```{r}
+####part C.2####
+#Pivot C2
+UBptC2 <- PivotTable$new()
+UBptC2$addData(UB)
+UBptC2$addColumnDataGroups("CreditCard")
+UBptC2$addRowDataGroups("Personal.Loan", addTotal = FALSE)
+UBptC2$defineCalculation(calculationName="Total", summariseExpression="n()")
+UBptC2$renderPivot()
+```
+```{r}
+####part D####
+cat("i. The proportion of credit card holders among the loan acceptors is",(77/292), "  \n ii. The proportion of online users among the loan accepters is", (178/292), "  \n iii. The proportion of loan acceptors is", (292/3000), "  \n iv. The proportion of credit card holders among the non loan acceptors is", (799/2708), "  \n v. The proportion of online users among the non loan acceptors is", (1602/2708),"  \n vi. The proportion of non loan acceptors is", (2708/3000))
+```
+
+```{r}
+####Part E####
+##P(Loan|CC, Online)
+N=(.2636986*.609589*.097333)
+D=(N)+(.2950517*.5915805*.9026667)
+NBProb=N/D
+NBProb
+```
+```{r}
+###Part F###
+cat("The value found in Part B (i.e., .0796) is less than the value found in part E (i.e., .0903). Model E, the naive Bayes probability model is the more accurate of the mdoels because the calculation is based on the entire data set rather than just the set of similar records.")
+```
+
+```{r}
+###Part G###
+
+nb_model <-naiveBayes(Personal.Loan~Online+CreditCard,data = UBTrain)
+nb_model
+
+
+cat("The entries needed for computing P(Loan = 1|CC=1,Online=1) numerator are the A-priori probability 1 (i.e., .097333), Online 1,1 (i.e., .6096), CC 1,1 (i.e., .2367) and for the denomenator are the previous plus the A-priori probability 0 (i.e., .9027), Online 0,1 (i.e., .5916), and CC 0,1 (i.e., .2951). The resulting formula matches the formula in part E: (.2636986*.609589*.097333)/((.2636986*.609589*.097333)+(.2950517*.5915805*.9026667))=.09033332.")
+
+```
+
