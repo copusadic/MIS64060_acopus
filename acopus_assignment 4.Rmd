@@ -1,0 +1,251 @@
+---
+title: "copus_assignment4"
+author: "copus"
+date: "3/13/2021"
+output:
+  html_document: default
+---
+
+.
+```{r}
+###SET UP###
+
+setwd("C:/Users/copus/Desktop/Classes/Machine Learning/Assignments/Assignment 4")
+
+##import data
+PharmData <- read.csv('C:/Users/copus/Desktop/Classes/Machine Learning/Assignments/Assignment 4/Pharmaceuticals.csv')
+
+##libraries##
+library(tidyverse)  # data manipulation
+library(cluster)    #clustering algorithm
+library(factoextra) # clustering algorithms & visualization
+library(ISLR)
+library(flexclust) #scree and silhouette plots
+library(qwraps2)  #summary table
+library(gridExtra) #plots in grids
+set.seed(123)
+
+str(PharmData)
+
+summary(PharmData)
+```
+```{r}
+###DISSIMILARITY INDEX###
+#PharmData1 <- PharmData[c(1,3,4,5,6,7,8,9)]
+
+# Scaling the data frame (z-score) 
+PharmData1 <- scale(PharmData[c(3,4,5,6,7,8,9)])
+distance <- get_dist(PharmData1)
+fviz_dist(distance, gradient = list(low = "#9A7D0A", mid = "white", high = "#1A5276"))
+```
+
+
+
+
+
+```{r}
+###COMPARE PLOTS###
+k2 <- kmeans(PharmData1, centers = 2, nstart = 25) # k = 2, number of restarts = 25
+k3 <- kmeans(PharmData1, centers = 3, nstart = 25)
+k4 <- kmeans(PharmData1, centers = 4, nstart = 25)
+k5 <- kmeans(PharmData1, centers = 5, nstart = 25)
+
+
+p1 <- fviz_cluster(k2, geom = "point", data = PharmData1) + ggtitle("k = 2")
+p2 <- fviz_cluster(k3, geom = "point",  data = PharmData1) + ggtitle("k = 3")
+p3 <- fviz_cluster(k4, geom = "point",  data = PharmData1) + ggtitle("k = 4")
+p4 <- fviz_cluster(k5, geom = "point",  data = PharmData1) + ggtitle("k = 5")
+
+
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+
+
+
+```
+```{r}
+###Determine K/ SCREE PLOT###
+fviz_nbclust(PharmData1, kmeans, method = "wss")
+
+```
+
+```{r}
+###SILHOUETTE###
+fviz_nbclust(PharmData1, kmeans, method = "silhouette")
+
+```
+
+
+
+```{r}
+###INFO ON K=2###
+
+str(k2)
+k2
+```
+
+
+
+
+
+```{r}
+###KMEANS CLUSTERING###
+
+
+set.seed(123)
+#kmeans clustering, using manhattan distance
+k2 = kcca(PharmData1, k=2, kccaFamily("kmeans"))
+k2
+```
+```{r}
+###PREDICT FUNCTION###
+
+#Apply the predict() function
+set.seed(123)
+clusters_index <- predict(k2)
+dist(k2@centers)
+image(k2)
+points(PharmData1, col=clusters_index, pch=19, cex=0.3)
+```
+
+
+```{r}
+###CLUSTER MEANS###
+
+set.seed(123)
+final <- kmeans(PharmData1, 2, nstart = 25)
+print(final)
+```
+
+
+
+
+
+```{r echo=FALSE}
+options(qwraps2_markup = 'markdown')
+###SUMMARY TABLE BY CLUSTER###
+
+
+
+PharmData3 <- PharmData %>%
+  mutate(Cluster = final$cluster) %>%
+  group_by(Cluster)
+
+
+PharmDataSum <-
+  list("Market Capitalization ($Billions)"=
+         list("Mean (SD)"  =~ qwraps2::mean_sd(Market_Cap),
+              "Minimum"    =~ min(Market_Cap),
+              "Median"    =~ median(Market_Cap),
+              "Maximum"   =~ max(Market_Cap)),
+       "Beta"=
+         list("Mean (SD)"  =~ qwraps2::mean_sd(Beta),
+              "Minimum"    =~ min(Beta),
+              "Median"    =~ median(Beta),
+              "Maximum"   =~ max(Beta)),
+       "Price/Earnings Ratio"=
+         list("Mean (SD)" = ~ qwraps2::mean_sd(PE_Ratio),
+              "Minimum"   =~ min(PE_Ratio),
+              "Median"     =~ median(PE_Ratio),
+              "Maximum"   =~ max(PE_Ratio)),
+       "Return on Equity"=
+         list("Mean (SD)" = ~ qwraps2::mean_sd(ROE),
+              "Minimum"    =~ min(ROE),
+              "Median"     =~ median(ROE),
+              "Maximum"   =~ max(ROE)),
+       "Return on Assets"=
+         list("Mean (SD)"  =~ qwraps2::mean_sd(ROA),
+              "Minimum"    =~ min(ROA),
+              "Median"    =~ median(ROA),
+              "Maximum"   =~ max(ROA)),
+       "Asset Turnover"=
+         list("Mean (SD)"  =~ qwraps2::mean_sd(Asset_Turnover),
+              "Minimum"    =~ min(Asset_Turnover),
+              "Median"   =~ median(Asset_Turnover),
+              "Maximum"   =~ max(Asset_Turnover)),
+       "Leverage"=
+         list("Mean (SD)"  =~ qwraps2::mean_sd(Leverage),
+              "Minimum"    =~ min(Leverage),
+              "Median"    =~ median(Leverage),
+              "Maximum"   =~ max(Leverage)),
+       "Estimated Rev Growth"=
+         list("Mean (SD)"  =~ qwraps2::mean_sd(Rev_Growth),
+              "Minimum"    =~ min(Rev_Growth),
+              "Median"     =~ median(Rev_Growth),
+              "Maximum"   =~ max(Rev_Growth)),
+       "Net Profit Margin"=
+         list("Mean (SD)" = ~ qwraps2::mean_sd(Net_Profit_Margin),
+              "Minimum"    =~ min(Net_Profit_Margin),
+              "Median"     =~ median(Net_Profit_Margin),
+              "Maximum"   =~ max(Net_Profit_Margin)),
+       "Median Recommendation"=
+         list("Hold" = ~ qwraps2::n_perc(Median_Recommendation== "Hold"),
+              "Strong Buy" = ~ qwraps2::n_perc(Median_Recommendation== "Strong Buy"),
+              "Moderate Buy "= ~ qwraps2::n_perc(Median_Recommendation== "Moderate Buy"),
+              "Moderate Sell"= ~ qwraps2::n_perc(Median_Recommendation== "Moderate Sell")),
+       "Location of Headquarters"=
+         list("CANADA" =~qwraps2::n_perc(Location== "CANADA"),
+              "FRANCE" =~qwraps2::n_perc(Location== "FRANCE"),
+              "GERMANY" =~qwraps2::n_perc(Location== "GERMANY"),
+              "IRELAND" =~qwraps2::n_perc(Location== "IRELAND"),
+              "SWITZERLAND"=~qwraps2::n_perc(Location=="SWITZERLAND"),
+              "UK" =~qwraps2::n_perc(Location=="UK"),
+              "US"=~qwraps2::n_perc(Location=="US")),
+       "Exchange firm is listed on"=
+          list("AMEX" =~qwraps2::n_perc(Exchange=="AMEX"),
+               "NASDAQ"=~qwraps2::n_perc(Exchange=="NASDAQ"),
+               "NYSE"=~qwraps2::n_perc(Exchange=="NYSE"))
+  )
+
+table <- summary_table(PharmData3,PharmDataSum)
+
+
+by_cluster <-summary_table(dplyr::group_by(PharmData3, Cluster), PharmDataSum)
+by_cluster
+
+
+
+```
+
+
+
+
+```{r}
+####PART A####
+#number of clusters = 2
+#clustering algorithms = 
+#weights for variables = 
+
+cat("     The decision about number of clusters chosen (i.e., 2) was made based upon visual examination of the Scree and Silhouette plots, which both indicated that 2 was an appropriate K for this analysis. Additionally, a comparison of four K-means clusters plots with various K suggested that either 2,3,or 4 could be an appropriate K. The dissimilarity matrix suggested using three K and the summary for the 3 clusters was evaluated, however, the size of the clusters (i.e., 9,7, and 5) were getting to be too small to make many preditions or extrapolations from, and therefore 2 K were chosen. Finally, the ratio sum of squares distances for a K of 2 was .348, which is not close to 1.0 and could indicate that the K=2 is an effective number of clusters.\n     The clustering algorithm used was K-Means clustering because we were able to predict the number of clusters (i.e., K=2) that would be most appropriate for this data using prior testing (i.e. the Scree plot, the Silhouette plot).")
+
+
+```
+
+
+
+```{r}
+####PART B####
+#Interpret clusters numerically
+cat("     Interpreting the clusters numerically suggests that Cluster 1 is the better performing, financially speaking, of the two clusters in the nine predictor variables. Based on the clustering, Cluster 1 had a better mean score in eight of the nine catgories (i.e., a higher mean in Market Capitalization, ROE, ROA, Asset Turnover, and Net Profit Margins and a lower mean score in Beta, Price/Earning ratio, and Leverage all indicating better performance). Cluster two had a higher mean score in Estimated Revenue Growth, however the minimum was lower and the range was larger suggesting that there are firms in Cluster 2 that are probably outliers. ")
+
+```
+
+```{r}
+####PART C####
+#is there a pattern in the clusters with respect to variables 10-12
+
+cat("     While the sample size (n=21)is probably too small to make accurate predictions with, there are possible patterns by clusters to the numerical variables, 10 - 12. The pattern in the Median Recommendation variable suggests that in Cluster 1 there is a stronger recommendation for hold (i.e., 54.6%) over the other options, while in Cluster 2 the recommendations are much more varied, with a sliht preference for moderate buy (i.e. 40.0%). The apparent pattern in the Location variable suggests that firms located within the European Union (EU) are all in Cluster 2, other locations are also included (i.e., Canada, the UK, and the US), but all locations within the EU are in Cluster 2. Is this due to regulatory limitations/restrictions on the firms? The apparent pattern in the Exchange on which firms are listed is less clear due to 19 of the 21 firms being listed on the NYSE. The only two firms to not be listed on the NYSE are in Cluster 2, along with eight of the NYSE firms. There probably is not enough variation in this category to identify a pattern.")
+
+
+
+
+```
+
+```{r}
+####PART D####
+#name the clusters
+
+cat("Cluster 1: High Financial Performers\nCluster 2: Average Financial Performers")
+
+
+```
+
